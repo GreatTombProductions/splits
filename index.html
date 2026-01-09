@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Split Calculator</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useMemo } = React;
+
+    function SplitCalculator() {
+      const [streamRate, setStreamRate] = useState(0.003);
+      const [percent, setPercent] = useState(10);
+      const [customStreams, setCustomStreams] = useState(500000);
+      const [selectedStreams, setSelectedStreams] = useState(1000000);
+
+      const milestones = [10000, 50000, 100000, 500000, 1000000, 5000000, 10000000];
+
+      const calculations = useMemo(() => {
+        const perSelectedPerPercent = selectedStreams * streamRate * 0.01;
+        
+        return {
+          perSelectedPerPercent,
+          selectedStreams,
+          atCurrentPercent: milestones.map(streams => ({
+            streams,
+            total: streams * streamRate,
+            yourShare: streams * streamRate * (percent / 100)
+          })),
+          customCalc: {
+            total: customStreams * streamRate,
+            yourShare: customStreams * streamRate * (percent / 100)
+          }
+        };
+      }, [streamRate, percent, customStreams, selectedStreams]);
+
+      const formatCurrency = (val) => {
+        if (val >= 1000) return `$${(val / 1000).toFixed(1)}k`;
+        if (val >= 100) return `$${Math.round(val)}`;
+        return `$${val.toFixed(2)}`;
+      };
+
+      const formatStreams = (val) => {
+        if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
+        if (val >= 1000) return `${(val / 1000).toFixed(0)}k`;
+        return val.toString();
+      };
+
+      return (
+        <div className="min-h-screen bg-zinc-950 text-zinc-100 p-6">
+          <div className="max-w-2xl mx-auto space-y-8">
+            
+            {/* Header */}
+            <div className="text-center space-y-2">
+              <h1 className="text-2xl font-semibold text-zinc-100">Split Calculator</h1>
+              <p className="text-zinc-500 text-sm">What's a percentage point worth?</p>
+            </div>
+
+            {/* Key Insight Box */}
+            <div className="bg-purple-950/30 border border-purple-800/50 rounded-lg p-6 text-center">
+              <div className="text-zinc-400 text-sm mb-1">At current rate</div>
+              <div className="text-3xl font-bold text-purple-300">
+                {formatCurrency(calculations.perSelectedPerPercent)}
+              </div>
+              <div className="text-zinc-400 text-sm mt-1">per {formatStreams(selectedStreams)} streams, per 1%</div>
+            </div>
+
+            {/* Controls */}
+            <div className="space-y-6">
+              
+              {/* Stream Rate */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-zinc-400">Per-stream rate</span>
+                  <span className="text-zinc-200 font-mono">${streamRate.toFixed(4)}</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.001"
+                  max="0.01"
+                  step="0.0001"
+                  value={streamRate}
+                  onChange={(e) => setStreamRate(parseFloat(e.target.value))}
+                  className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                />
+                <div className="flex justify-between text-xs text-zinc-600">
+                  <span>$0.001</span>
+                  <span>$0.003</span>
+                  <span>$0.005</span>
+                  <span>$0.007</span>
+                  <span>$0.01</span>
+                </div>
+              </div>
+
+              {/* Percentage */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-zinc-400">Ownership percentage</span>
+                  <span className="text-zinc-200 font-mono">{percent}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="1"
+                  max="50"
+                  step="1"
+                  value={percent}
+                  onChange={(e) => setPercent(parseInt(e.target.value))}
+                  className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                />
+                <div className="flex justify-between text-xs text-zinc-600">
+                  <span>1%</span>
+                  <span>10%</span>
+                  <span>25%</span>
+                  <span>40%</span>
+                  <span>50%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Milestone Table */}
+            <div className="space-y-3">
+              <h2 className="text-sm font-medium text-zinc-400">At {percent}% ownership <span className="text-zinc-600">(click row to select)</span></h2>
+              <div className="bg-zinc-900/50 rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-zinc-800">
+                      <th className="text-left p-3 text-zinc-500 font-medium">Streams</th>
+                      <th className="text-right p-3 text-zinc-500 font-medium">Total Revenue</th>
+                      <th className="text-right p-3 text-zinc-500 font-medium">Your Share</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {calculations.atCurrentPercent.map(({ streams, total, yourShare }) => (
+                      <tr 
+                        key={streams} 
+                        onClick={() => setSelectedStreams(streams)}
+                        className={`border-b border-zinc-800/50 last:border-0 cursor-pointer transition-colors ${
+                          selectedStreams === streams 
+                            ? 'bg-purple-900/30' 
+                            : 'hover:bg-zinc-800/50'
+                        }`}
+                      >
+                        <td className={`p-3 ${selectedStreams === streams ? 'text-purple-200' : 'text-zinc-300'}`}>
+                          {formatStreams(streams)}
+                        </td>
+                        <td className={`p-3 text-right ${selectedStreams === streams ? 'text-purple-300' : 'text-zinc-400'}`}>
+                          {formatCurrency(total)}
+                        </td>
+                        <td className={`p-3 text-right font-medium ${selectedStreams === streams ? 'text-purple-200' : 'text-purple-300'}`}>
+                          {formatCurrency(yourShare)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Custom Calculator */}
+            <div className="bg-zinc-900/30 rounded-lg p-4 space-y-3">
+              <h2 className="text-sm font-medium text-zinc-400">Custom scenario</h2>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  value={customStreams}
+                  onChange={(e) => setCustomStreams(parseInt(e.target.value) || 0)}
+                  className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-zinc-200 font-mono text-sm focus:outline-none focus:border-purple-500"
+                  placeholder="Enter streams"
+                />
+                <span className="text-zinc-500 text-sm">streams</span>
+              </div>
+              <div className="flex justify-between text-sm pt-2">
+                <span className="text-zinc-400">At {percent}%:</span>
+                <span className="text-purple-300 font-medium">{formatCurrency(calculations.customCalc.yourShare)}</span>
+              </div>
+            </div>
+
+            {/* Comparison: What's 5% worth? */}
+            <div className="border-t border-zinc-800 pt-6 space-y-3">
+              <h2 className="text-sm font-medium text-zinc-400">Each additional 5% is worth...</h2>
+              <div className="grid grid-cols-3 gap-3 text-center">
+                {[500000, 1000000, 5000000].map(streams => (
+                  <div key={streams} className="bg-zinc-900/50 rounded-lg p-3">
+                    <div className="text-zinc-500 text-xs mb-1">{formatStreams(streams)} streams</div>
+                    <div className="text-green-400 font-semibold">
+                      +{formatCurrency(streams * streamRate * 0.05)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <p className="text-center text-zinc-600 text-xs">
+              Adjust assumptions above. Rates vary by platform and distributor.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<SplitCalculator />);
+  </script>
+</body>
+</html>
